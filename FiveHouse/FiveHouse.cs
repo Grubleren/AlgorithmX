@@ -30,11 +30,12 @@ namespace JH.Calculations
 
             algorithmX = new AlgorithmX();
             algorithmX.callBack = CallBack;
-            tableau = new Node[125, 112];
+            tableau = new Node[5 * 25 + 3 * 8, 130];
 
             index = 0;
-            ElementConstraints();
             HouseConstraints();
+            ElementConstraints();
+            ExtraConstraints();
             SingleConstraints();
             PairConstraints();
             NextToConstraints();
@@ -49,7 +50,7 @@ namespace JH.Calculations
             else
                 Console.WriteLine("No solution");
 
-            Print();
+            PrintResult();
         }
 
         /// <summary>
@@ -82,6 +83,25 @@ namespace JH.Calculations
                     }
                     index++;
                 }
+        }
+
+        /// <summary>
+        /// The nextto constraints requires three times eight extra variabels for the eight possible combinations
+        /// E.g. n0b1, n1b0, n1b2, n2b1, n2b3, n3b2, n3b4, n4b3, where nx refers to the norwegian living in house x and by refers to the y'th house being blue
+        /// </summary>
+        private void ExtraConstraints()
+        {
+            for (int n = 0; n < 8; n++)
+                tableau[125 + n, index] = new Node(125 + n, index);
+            index++;
+
+            for (int n = 0; n < 8; n++)
+                tableau[125 + 8 + n, index] = new Node(125 + 8 + n, index);
+            index++;
+
+            for (int n = 0; n < 8; n++)
+                tableau[125 + 16 + n, index] = new Node(125 + 16 + n, index);
+            index++;
         }
 
         /// <summary>
@@ -133,13 +153,13 @@ namespace JH.Calculations
         private void NextToConstraints()
         {
             // The man who smokes Chesterfields (3, 1) lives in the house next to the man with the fox (4, 1)
-            NextTo(3, 1, 4, 1);
+            NextTo(125, 3, 1, 4, 1);
 
             // The Norwegian (1, 2) lives next to the blue house (0, 2)
-            NextTo(1, 2, 0, 2);
+            NextTo(125 + 8, 1, 2, 0, 2);
 
             // Kools (3, 0) are smoked in the house next to the house where the horse is kept (4, 3)
-            NextTo(3, 0, 4, 3);
+            NextTo(125 + 16, 3, 0, 4, 3);
 
         }
 
@@ -185,7 +205,7 @@ namespace JH.Calculations
         /// <param name="house"></param>
         private void MarkNotNode(int group, int element, int house)
         {
-            for (int k = 0; k < 5; k++)
+            for (int k = 0; k < 5; k++) // element
             {
                 if (k != element)
                 {
@@ -214,42 +234,54 @@ namespace JH.Calculations
         }
 
         /// <summary>
-        /// Example: The Norwegiam lives next to the blue house
-        /// Either the Norwegian lives in house 1 or house 1 is blue or the Norwegian lives in house 3 or house 3 is blue.
-        /// This is only a necessary condition covering part of the nextto problem. The situations with houses (0, 3),  (3, 0), (1, 4), (4, 1) is not covered.
-        /// Four extra constraints are needed:
-        /// Either the Norwegian lives in house 0 or house 1 is not blue
-        /// Either house 0 is blue or the Norwegian does not live in house 1
-        /// Either the Norwegian lives in house 4 or house 3 is not blue
-        /// Either house 4 is blue or the Norwegian does not live in house 3
+        /// Marks the extra variables except those containing house (i)
         /// </summary>
+        /// <param name="offset">Row for extra variables</param>
+        /// <param name="i">house</param>
+        /// <param name="m1"></param>
+        /// <param name="m2"></param>
+        private void MarkExtra(int offset, int i, int m1, int m2)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                int n = j + m1;
+                if (n != i)
+                    tableau[offset + j, index] = new Node(offset + j, index);
+            }
+
+            for (int j = 0; j < 4; j++)
+            {
+                int n = j + m2;
+                if (n != i)
+                    tableau[offset + j + 4, index] = new Node(offset + j, index);
+            }
+        }
+        /// <summary>
+        /// Example: The Norwegiam lives next to the blue house
+        /// The eight extra variables are needed: n0b1, n1b0, n1b2, n2b1, n2b3, n3b2, n3b4, n4b3
+        /// Either the Norwegian lives in house (3) or the blue house is not next to house (3) (n0b1 or n1b0 or n1b2 or n2b1 or n2b3 or n4b3)
+        /// and either house (2) is blue or the Norwegian does not live next to house (2) (n0b1 or n1b0 or n2b1 or n2b3 or n3b4 or n4b3)
+        /// </summary>
+        /// <param name="offset">Row of extra variables</param>
         /// <param name="group1"></param>
         /// <param name="element1"></param>
         /// <param name="group2"></param>
         /// <param name="element2"></param>
-        private void NextTo(int group1, int element1, int group2, int element2)
+        private void NextTo(int offset, int group1, int element1, int group2, int element2)
         {
-            MarkNode(group1, element1, 1);
-            MarkNode(group2, element2, 1);
-            MarkNode(group1, element1, 3);
-            MarkNode(group2, element2, 3);
-            index++;
+            for (int i = 0; i < 5; i++)
+            {
+                MarkNode(group1, element1, i);
+                MarkExtra(offset, i, 0, 1);
+                index++;
+            }
 
-            MarkNode(group1, element1, 0);
-            MarkNotNode(group2, element2, 1);
-            index++;
-
-            MarkNode(group2, element2, 0);
-            MarkNotNode(group1, element1, 1);
-            index++;
-
-            MarkNode(group1, element1, 4);
-            MarkNotNode(group2, element2, 3);
-            index++;
-
-            MarkNode(group2, element2, 4);
-            MarkNotNode(group1, element1, 3);
-            index++;
+            for (int i = 0; i < 5; i++)
+            {
+                MarkNode(group2, element2, i);
+                MarkExtra(offset, i, 1, 0);
+                index++;
+            }
 
         }
 
@@ -283,20 +315,23 @@ namespace JH.Calculations
             else
                 Console.WriteLine("Back:");
 
-            Print();
+            PrintResult();
         }
 
-        void Print()
+        void PrintResult()
         {
             string[,] solution = new string[5, 5];
 
             for (int i = 0; i < algorithmX.result.Count; i++)
             {
                 int result = algorithmX.result[i];
-                int group = result / 25;
-                int element = (result - 25 * group) / 5;
-                int house = result - 25 * group - 5 * element;
-                solution[house, group] = GroupsAndElements[group, element];
+                if (result < 125)
+                {
+                    int group = result / 25;
+                    int element = (result - 25 * group) / 5;
+                    int house = result - 25 * group - 5 * element;
+                    solution[house, group] = GroupsAndElements[group, element];
+                }
             }
 
             for (int i = 0; i < 5; i++)
