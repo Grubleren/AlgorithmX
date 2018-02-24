@@ -5,34 +5,10 @@ using System.IO;
 using System.Threading;
 using System.Drawing;
 
-namespace JH.Calculations
+namespace JH.Applications
 {
     public partial class Sudoku : Form
     {
-        class Binder
-        {
-            static int count = 0;
-            public Binder(int ic, int jc, int kc, int ir, int jr, int kr, int state)
-            {
-                this.ic = ic;
-                this.jc = jc;
-                this.kc = kc;
-                this.ir = ir;
-                this.jr = jr;
-                this.kr = kr;
-                this.state = state;
-                count++;
-            }
-
-            public int ic;
-            public int jc;
-            public int kc;
-            public int ir;
-            public int jr;
-            public int kr;
-            public int state;
-        }
-
         int[,] sudoku = new int[9, 9];
         PictureBox pictureBox;
         Bitmap graphArea;
@@ -88,55 +64,48 @@ namespace JH.Calculations
             }
 
             Print();
- 
-            Binder[, , , , ,] t = new Binder[9, 9, 4, 9, 9, 9];
 
-            for (int i = 0; i < 9; i++)
-                for (int j = 0; j < 9; j++)
-                    for (int k = 0; k < 9; k++)
-                        t[i, j, 0, i, j, k] = new Binder(0, 0, 0, 0, 0, 0, 0);
+            for (int r = 0; r < 9; r++)
+                for (int c = 0; c < 9; c++)
+                    for (int n = 0; n < 9; n++)
+                    {
+                        int tr = 81 * r + 9 * c + n;
+                        int tc = 9 * r + c;
+                        if (sudoku[r, c] == 0 || sudoku[r, c] - 1 == n)
+                            tableau[tr, tc] = new Node(tr, tc);
+                    }
 
-            for (int i = 0; i < 9; i++)
-                for (int j = 0; j < 9; j++)
-                    for (int k = 0; k < 9; k++)
-                        t[i, j, 1, i, k, j] = new Binder(0, 0, 0, 0, 0, 0, 0);
+            for (int r = 0; r < 9; r++)
+                for (int n = 0; n < 9; n++)
+                    for (int c = 0; c < 9; c++)
+                    {
+                        int tr = 81 * r + 9 * c + n;
+                        int tc = 81 + 9 * r + n;
+                        if (sudoku[r, c] == 0 || sudoku[r, c] - 1 == n)
+                            tableau[tr, tc] = new Node(tr, tc);
+                    }
 
-            for (int i = 0; i < 9; i++)
-                for (int j = 0; j < 9; j++)
-                    for (int k = 0; k < 9; k++)
-                        t[i, j, 2, k, i, j] = new Binder(0, 0, 0, 0, 0, 0, 0);
+            for (int c = 0; c < 9; c++)
+                for (int n = 0; n < 9; n++)
+                    for (int r = 0; r < 9; r++)
+                    {
+                        int tr = 81 * r + 9 * c + n;
+                        int tc = 162 + 9 * c + n;
+                        if (sudoku[r, c] == 0 || sudoku[r, c] - 1 == n)
+                            tableau[tr, tc] = new Node(tr, tc);
+                    }
 
             for (int i1 = 0; i1 < 3; i1++)
                 for (int i2 = 0; i2 < 3; i2++)
-                    for (int j = 0; j < 9; j++)
-                        for (int k1 = 0; k1 < 3; k1++)
-                            for (int k2 = 0; k2 < 3; k2++)
-                                t[3 * i1 + i2, j, 3, k1 + 3 * i1, k2 + 3 * i2, j] = new Binder(0, 0, 0, 0, 0, 0, 0);
-
-
-            int row;
-            int column;
-            int count = 0;
-
-            for (int i = 0; i < 9; i++)
-                for (int j = 0; j < 9; j++)
-                    for (int k = 0; k < 4; k++)
-                    {
-                        column = 36 * i + 4 * j + k;
-
-                        for (int i1 = 0; i1 < 9; i1++)
-                            for (int j1 = 0; j1 < 9; j1++)
-                                for (int k1 = 0; k1 < 9; k1++)
-                                {
-                                    row = 81 * i1 + 9 * j1 + k1;
-                                    if (t[i, j, k, i1, j1, k1] != null && (sudoku[i1, j1] == 0 || sudoku[i1, j1] - 1 == k1))
-                                    {
-                                        // Console.WriteLine("{0} {1} {2}   {3} {4} {5}     {6} {7}", i,j,k,i1,j1,k1,row, column);
-                                        tableau[row, column] = new Node(row, column);
-                                        count++;
-                                    }
-                                }
-                    }
+                    for (int n = 0; n < 9; n++)
+                        for (int j1 = 0; j1 < 3; j1++)
+                            for (int j2 = 0; j2 < 3; j2++)
+                            {
+                                int tr = 81 * (3 * i1 + j1) + 9 * (3 * i2 + j2) + n;
+                                int tc = 243 + 9 * (3 * i1 + i2) + n;
+                                if (sudoku[3 * i1 + j1, 3 * i2 + j2] == 0 || sudoku[3 * i1 + j1, 3 * i2 + j2] - 1 == n)
+                                    tableau[tr, tc] = new Node(tr, tc);
+                            }
 
             bool retVal = true;
 
@@ -171,7 +140,7 @@ namespace JH.Calculations
             PrintCell(r, c, v + 1, draw);
             pictureBox.Invalidate();
 
-            Thread.Sleep(100);
+            Thread.Sleep(200);
         }
 
         private void CheckSolution(List<int> list)
@@ -241,7 +210,7 @@ namespace JH.Calculations
         void PrintCell(int r, int c, int v, bool draw)
         {
             graphGraphics.FillRectangle(brushWhite, new Rectangle(scaling * c, scaling * r, scaling, scaling));
- 
+
             if (draw)
                 graphGraphics.DrawString(v.ToString(), font, brushBlack, scaling * c, scaling * r);
         }
