@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Windows.Forms;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+using System.Drawing;
 
-namespace JH.Calculations
+namespace JH.Applications
 {
     public partial class FiveHouse : Form
     {
@@ -14,23 +18,47 @@ namespace JH.Calculations
         Node[,] tableau;
         AlgorithmX algorithmX;
         int index;
+        PictureBox pictureBox;
+        Bitmap graphArea;
+        Graphics graphGraphics;
+        int scaling;
+        int width;
+        int height;
+        Font font = new Font("Courier", 10, FontStyle.Regular);
+        Pen penBlack = new Pen(Color.Black);
+        SolidBrush brushBlack = new SolidBrush(Color.Black);
+        SolidBrush brushWhite = new SolidBrush(Color.White);
 
         public FiveHouse()
         {
             InitializeComponent();
+            scaling = 100;
+            width = 5;
+            height = 5;
+            pictureBox = new PictureBox();
+            pictureBox.Location = new Point(10, 10);
+            pictureBox.Size = new Size(scaling * width+1, scaling * height+1);
+            pictureBox.Paint += new PaintEventHandler(OnDraw);
+            Controls.Add(pictureBox);
+
+            graphArea = new Bitmap(pictureBox.Width, pictureBox.Height);
+            graphGraphics = Graphics.FromImage(graphArea);
+            graphGraphics.Clear(Color.White);
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            Solve();
+            Thread thread = new Thread(new ThreadStart(Go));
+            thread.Name = "MyThread";
+            thread.Start();
         }
 
-        public void Solve()
+        public void Go()
         {
 
             algorithmX = new AlgorithmX();
             algorithmX.callBack = CallBack;
-            tableau = new Node[5 * 25 + 3 * 8, 130];
+                tableau = new Node[5 * 25 + 3 * 8, 130];
 
             index = 0;
             HouseConstraints();
@@ -41,6 +69,7 @@ namespace JH.Calculations
             NextToConstraints();
             RightOfConstraints();
 
+            ClearCells();
             algorithmX.Init(tableau);
 
             bool retVal = algorithmX.Search();
@@ -50,7 +79,6 @@ namespace JH.Calculations
             else
                 Console.WriteLine("No solution");
 
-            PrintResult();
         }
 
         /// <summary>
@@ -308,14 +336,57 @@ namespace JH.Calculations
             index++;
         }
 
-        void CallBack(int x, bool draw)
+        protected void OnDraw(object sender, PaintEventArgs e)
         {
-            if (draw)
-                Console.WriteLine("Forward:");
-            else
-                Console.WriteLine("Back:");
+            base.OnPaint(e);
+            Graphics graphics = e.Graphics;
 
-            PrintResult();
+            graphics.DrawImage(graphArea, 0, 0);
+        }
+
+        void CallBack(int index, bool draw)
+        {
+            int r, c, v;
+            if (index < 125)
+            {
+                Decode(index, out r, out c, out v);
+
+
+                PrintCell(r, c, v, draw);
+                pictureBox.Invalidate();
+
+                Thread.Sleep(600);
+
+            }
+        }
+
+        void Decode(int cell, out int r, out int c, out int v)
+        {
+            r = cell / 25;
+            c = (cell - 25 * r) / 5;
+            v = cell - 25 * r - 5 * c;
+        }
+
+        void PrintCell(int r, int v, int c, bool draw)
+        {
+            graphGraphics.FillRectangle(brushWhite, new Rectangle(scaling * c, scaling * r, scaling, scaling));
+            graphGraphics.DrawRectangle(penBlack, new Rectangle(scaling * c, scaling * r, scaling, scaling));
+
+            if (draw)
+                graphGraphics.DrawString(GroupsAndElements[r,v].ToString(), font, brushBlack, (int)(scaling * (c+0.1)), (int)(scaling * (r+0.4)));
+        }
+
+        void ClearCells()
+        {
+            for (int c = 0; c < 5; c++)
+            {
+                for (int r = 0; r < 5; r++)
+                {
+                    graphGraphics.FillRectangle(brushWhite, new Rectangle(scaling * c, scaling * r, scaling, scaling));
+                    graphGraphics.DrawRectangle(penBlack, new Rectangle(scaling * c, scaling * r, scaling, scaling));
+                }
+            }
+
         }
 
         void PrintResult()
