@@ -213,7 +213,7 @@ namespace JH.Applications
             index++;
         }
 
-        /// <summary>
+        ///     <summary>
         ///  Marks the node (group, element, house) in the tableau
         /// </summary>
         /// <param name="group"> E.g. nationality (1)</param>
@@ -268,21 +268,20 @@ namespace JH.Applications
         /// <param name="i">house</param>
         /// <param name="m1"></param>
         /// <param name="m2"></param>
-        private void MarkExtra(int offset, int i, int m1, int m2)
+        private void MarkExtra(int offset, int i, int m)
         {
-            for (int j = 0; j < 4; j++)
+            int[] n;
+            if (m == 0)
+                n = new int[] { 0, 1, 1, 2, 2, 3, 3, 4 };
+            else
+                n = new int[] { 1, 0, 2, 1, 3, 2, 4, 3 };
+
+            for (int j = 0; j < 8; j++)
             {
-                int n = j + m1;
-                if (n != i)
+                if (n[j] != i)
                     tableau[offset + j, index] = new Node(offset + j, index);
             }
 
-            for (int j = 0; j < 4; j++)
-            {
-                int n = j + m2;
-                if (n != i)
-                    tableau[offset + j + 4, index] = new Node(offset + j, index);
-            }
         }
         /// <summary>
         /// Example: The Norwegiam lives next to the blue house
@@ -300,14 +299,14 @@ namespace JH.Applications
             for (int i = 0; i < 5; i++)
             {
                 MarkNode(group1, element1, i);
-                MarkExtra(offset, i, 0, 1);
+                MarkExtra(offset, i, 0);
                 index++;
             }
 
             for (int i = 0; i < 5; i++)
             {
                 MarkNode(group2, element2, i);
-                MarkExtra(offset, i, 1, 0);
+                MarkExtra(offset, i, 1);
                 index++;
             }
 
