@@ -1,4 +1,4 @@
-﻿namespace JH.Calculations
+﻿namespace JH.Applications
 {
     partial class Pentominoes
     {
@@ -28,21 +28,40 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.SuspendLayout();
             // 
-            // Form1
+            // comboBox1
+            // 
+            this.comboBox1.FormattingEnabled = true;
+            this.comboBox1.Items.AddRange(new object[] {
+            "20x3",
+            "15x4",
+            "12x5",
+            "10x6",
+            "8x8 no corners",
+            "8x8 no center"});
+            this.comboBox1.Location = new System.Drawing.Point(369, 478);
+            this.comboBox1.Name = "comboBox1";
+            this.comboBox1.Size = new System.Drawing.Size(121, 21);
+            this.comboBox1.TabIndex = 0;
+            this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.NewRectangle);
+            // 
+            // Pentominoes
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1019, 528);
-            this.Name = "Form1";
+            this.ClientSize = new System.Drawing.Size(584, 528);
+            this.Controls.Add(this.comboBox1);
+            this.Name = "Pentominoes";
             this.Text = "Form1";
-            this.Load += new System.EventHandler(this.Form_Load);
             this.ResumeLayout(false);
 
         }
 
         #endregion
+
+        private System.Windows.Forms.ComboBox comboBox1;
     }
 }
 

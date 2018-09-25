@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace JH.Calculations
+namespace JH.Applications
 {
     public partial class Pentominoes : Form
     {
@@ -136,7 +136,7 @@ namespace JH.Calculations
         }
 
         List<Position> positions;
-        Rectangle center;
+        Point[] excluded;
         List<Pentomino> pentominoes;
         Node[,] tableau;
         AlgorithmX algorithmX;
@@ -150,46 +150,80 @@ namespace JH.Calculations
         public Pentominoes()
         {
             InitializeComponent();
+            
+            pictureBox = new PictureBox();
+            pictureBox.Location = new Point(10, 10);
+            pictureBox.Paint += new PaintEventHandler(OnDraw);
+            Controls.Add(pictureBox);
 
             pentominoes = new List<Pentomino>();
-            positions = new List<Position>();
-
-            width = 8;
-            height = 8;
-            scaling = 50;
-            center = new Rectangle(3, 3, 2, 2);
-
+            BasicPentominoes();
+            
             algorithmX = new AlgorithmX();
             algorithmX.callBack = CallBack;
-
-            BasicPentominoes();
-
+            
             foreach (Pentomino p in pentominoes)
             {
                 p.Print();
                 Console.WriteLine();
             }
 
-            GeneratePositions(width, height, center);
-            tableau = new Node[positions.Count, 76];
-
-            pictureBox = new PictureBox();
-            pictureBox.Location = new Point(10, 10);
-            pictureBox.Size = new Size(scaling * width, scaling * height);
-            pictureBox.Paint += new PaintEventHandler(OnDraw);
-            Controls.Add(pictureBox);
-
-            graphArea = new Bitmap(pictureBox.Width, pictureBox.Height);
-            graphGraphics = Graphics.FromImage(graphArea);
-            graphGraphics.Clear(Color.White);
-
-
+            comboBox1.SelectedIndex = 4;
         }
 
-        private void Form_Load(object sender, EventArgs e)
+        private void NewRectangle(object sender, EventArgs e)
         {
+            switch (comboBox1.SelectedIndex)
+            {
+                case 0:
+                    width = 3;
+                    height = 20;
+                    scaling = 20;
+                    excluded = null;
+                    break;
+                case 1:
+                    width = 4;
+                    height = 15;
+                    scaling = 27;
+                    excluded = null;
+                    break;
+                case 2:
+                    width = 5;
+                    height = 12;
+                    scaling = 33;
+                    excluded = null;
+                    break;
+                case 3:
+                    width = 6;
+                    height = 10;
+                    scaling = 40;
+                    excluded = null;
+                    break;
+                case 4:
+                    width = 8;
+                    height = 8;
+                    scaling = 50;
+                    excluded = new Point[] { new Point(0, 0), new Point(0, 7), new Point(7, 0), new Point(7, 7) };
+                    break;
+                case 5:
+                    width = 8;
+                    height = 8;
+                    scaling = 50;
+                    excluded = new Point[] { new Point(3, 3), new Point(4, 3), new Point(3, 4), new Point(4, 4) };
+                    break;
+
+            }
+
+            positions = new List<Position>();
+            GeneratePositions();
+            tableau = new Node[positions.Count, 72];
+
+            pictureBox.Size = new Size(scaling * width, scaling * height);
+            graphArea = new Bitmap(pictureBox.Width, pictureBox.Height);
+            graphGraphics = Graphics.FromImage(graphArea);
+            graphGraphics.Clear(Color.Transparent);
+            
             Thread thread = new Thread(new ThreadStart(Go));
-            thread.Name = "MyThread";
             thread.Start();
         }
 
@@ -199,11 +233,20 @@ namespace JH.Calculations
             int count = 0;
             foreach (Position position in positions)
             {
-                int column = 64 + position.p.name;
+                int column = 60 + position.p.name;
                 tableau[count, column] = new Node(count, column);
-                foreach (Point element in position.p.content)
+                foreach (Point p in position.p.content)
                 {
-                    column = height * (element.X + position.position.X) + element.Y + position.position.Y;
+                    column = p.X + position.position.X + (p.Y + position.position.Y) * width;
+
+                    if (excluded != null)
+                    {
+                        int gt = 0;
+                        foreach (Point e in excluded)
+                            if (column > e.X + e.Y * width)
+                                gt++;
+                        column -= gt;
+                    }
 
                     tableau[count, column] = new Node(count, column);
                 }
@@ -214,15 +257,6 @@ namespace JH.Calculations
 
             algorithmX.Init(tableau);
 
-            algorithmX.headerRow[27].l.r = algorithmX.headerRow[27].r;
-            algorithmX.headerRow[27].r.l = algorithmX.headerRow[27].l;
-            algorithmX.headerRow[28].l.r = algorithmX.headerRow[28].r;
-            algorithmX.headerRow[28].r.l = algorithmX.headerRow[28].l;
-            algorithmX.headerRow[35].l.r = algorithmX.headerRow[35].r;
-            algorithmX.headerRow[35].r.l = algorithmX.headerRow[35].l;
-            algorithmX.headerRow[36].l.r = algorithmX.headerRow[36].r;
-            algorithmX.headerRow[36].r.l = algorithmX.headerRow[36].l;
-
             DateTime t0 = DateTime.Now;
             retVal = algorithmX.Search();
             DateTime t1 = DateTime.Now;
@@ -232,7 +266,7 @@ namespace JH.Calculations
             else
                 Console.WriteLine("\nSorry, no solution !");
 
-            CheckSolution(algorithmX.result, width, height);
+            CheckSolution();
 
             foreach (int index in algorithmX.result)
             {
@@ -248,7 +282,8 @@ namespace JH.Calculations
             base.OnPaint(e);
             Graphics graphics = e.Graphics;
 
-            graphics.DrawImage(graphArea, 0, 0);
+            if (graphArea != null)
+                graphics.DrawImage(graphArea, 0, 0);
         }
 
         void CallBack(int index, bool draw)
@@ -274,30 +309,38 @@ namespace JH.Calculations
             Thread.Sleep(10);
         }
 
-        void CheckSolution(List<int> result, int width, int height)
+        void CheckSolution()
         {
             int[,] solution = new int[width, height];
 
-            foreach (int index in result)
+            foreach (int index in algorithmX.result)
             {
                 Position position = positions[index];
                 List<Point> content = position.p.content;
                 foreach (Point element in content)
                 {
-                    solution[element.X + position.position.X, element.Y + position.position.Y] = solution[element.X + position.position.X, element.Y + position.position.Y] ^ 1;
+                    solution[element.X + position.position.X, element.Y + position.position.Y] += 1;
                 }
             }
 
             for (int i = 0; i < width; i++)
                 for (int j = 0; j < height; j++)
-                    if (solution[i, j] != 1)
-                         throw new Exception("Error in solution");// error for 8x8, test incorrect
-
+                {
+                    bool check = true;
+                    if (excluded != null)
+                    {
+                        foreach (Point p in excluded)
+                            if (i != p.X || j != p.Y)
+                                check = false;
+                    }
+                    if (check && solution[i, j] != 1)
+                        throw new Exception("Error in solution");// error for not 8x8, test incorrect
+                }
             Console.WriteLine("Solution OK");
 
         }
 
-        void GeneratePositions(int width, int height, Rectangle center)
+        void GeneratePositions()
         {
             foreach (Pentomino pentomino in pentominoes)
             {
@@ -309,7 +352,7 @@ namespace JH.Calculations
                         if (enclosure.Width - 1 + i < width && enclosure.Height - 1 + j < height)
                         {
                             Position position = new Position(new Point(i, j), pentomino);
-                            if (!Overlap(position, center))
+                            if (!OverlapExcluded(position))
                                 positions.Add(position);
                         }
                     }
@@ -317,16 +360,15 @@ namespace JH.Calculations
             }
         }
 
-        bool Overlap(Position position, Rectangle center)
+        bool OverlapExcluded(Position position)
         {
-            if (center.Width == 0 && center.Height == 0)
+            if (excluded == null)
                 return false;
 
-            List<Point> content = position.p.content;
-
-            foreach (Point p in content)
-                if (center.Contains(new Point(position.position.X + p.X, position.position.Y + p.Y)))
-                    return true;
+            foreach (Point p in position.p.content)
+                foreach (Point e in excluded)
+                    if (position.position.X + p.X == e.X && position.position.Y + p.Y == e.Y)
+                        return true;
 
             return false;
         }
@@ -659,5 +701,6 @@ namespace JH.Calculations
             }
 
         }
+
     }
 }
