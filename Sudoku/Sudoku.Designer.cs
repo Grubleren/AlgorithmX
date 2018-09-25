@@ -1,4 +1,4 @@
-﻿namespace JH.Calculations
+﻿namespace JH.Applications
 {
     partial class Sudoku
     {

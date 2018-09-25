@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace JH.Calculations
+namespace JH.Applications
 {
     public class Node
     {
